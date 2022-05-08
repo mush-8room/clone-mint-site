@@ -19,13 +19,15 @@ contract CrumbleToken is ERC721URIStorage{
     Counters.Counter private _tokenId;
 
     // address public marketplace;
-    address payable owner;
+    // address payable owner;
     uint256 private _mintIdx;
 
     constructor () ERC721("Crumble","CRB") {
-        owner = payable(msg.sender);
-        _mintIdx = 1;
+        // owner = payable(msg.sender);
+        _mintIdx = 0;
     }
+
+    mapping(uint256 => Crumble) private crumbles;
 
     // NFT에 대한 정보 작성
     struct Crumble {
@@ -44,8 +46,6 @@ contract CrumbleToken is ERC721URIStorage{
         bool isSold
     );
 
-    mapping(uint256 => Crumble) public crumbles;
-
     function createCrumble(string memory tokenURI, uint256 price) public returns (uint256) {
         _tokenId.increment();
         uint256 newTokenId = _tokenId.current();
@@ -53,8 +53,6 @@ contract CrumbleToken is ERC721URIStorage{
         // token 생성
         _mint(msg.sender, newTokenId);
         _setTokenURI(newTokenId, tokenURI);
-        // 발행한 NFT를 판매할 수 있도록 변경 >> owner를 contract로 변경
-        approve(address(this), newTokenId);
 
         crumbles[newTokenId] = Crumble({
             tokenId: newTokenId,
@@ -64,6 +62,11 @@ contract CrumbleToken is ERC721URIStorage{
             isSold: false
         });
 
+        // 발행한 NFT를 판매할 수 있도록 변경 >> owner를 contract로 변경
+        // approve는 owner가 바뀌지 않음
+        // transfer는 owner가 변경됨
+        _transfer(msg.sender, address(this), newTokenId);
+        // approve(address(this), newTokenId);
         emit CrumbleCreated(newTokenId, msg.sender, address(this), price, false);
 
         return newTokenId;
@@ -73,23 +76,40 @@ contract CrumbleToken is ERC721URIStorage{
     function publicMint() public payable {
         // 민팅을 하는 사람에게 랜덤 or 순차적으로 생성되어있는 NFT를 넘겨줌
         // 한 번에 하나의 NFT가 민팅됨
-        uint price = crumbles[_mintIdx].price;
+        uint currentMint = _mintIdx + 1;
+        uint price = crumbles[currentMint].price;
+        address payable seller = crumbles[currentMint].seller;
 
-        require(owner == msg.sender, "Owner can't mint Crumble");
-        require(_tokenId.current() < _mintIdx, "All Crumble are sold");
-        require(msg.value == price, "Not enough ETH");
+        require(seller != msg.sender, "Seller can't mint Crumble");
+        require(msg.value == price, "Please pay proper price");
 
-        crumbles[_mintIdx].seller = payable(address(0)); // seller가 없음
-        crumbles[_mintIdx].owner = payable(msg.sender); // owner가 변경됨
-        crumbles[_mintIdx].isSold = true;
-        _mint(msg.sender, _mintIdx);
+        crumbles[currentMint].seller = payable(address(0)); // seller가 없음
+        crumbles[currentMint].owner = payable(msg.sender); // owner가 변경됨
+        crumbles[currentMint].isSold = true;
+        // _mint(msg.sender, _mintIdx);
+        _transfer(address(this), msg.sender, currentMint);
         _mintIdx += 1;
 
         // 민팅을 성공하면 출금이 일어남        
-        crumbles[_mintIdx].owner.transfer(price);
-        crumbles[_mintIdx].seller.transfer(msg.value);
+        // crumbles[currentMint].owner.transfer(price);
+        // msg.value : 송금 보낸 코인의 값, message와 함께 보낸 wei의 값
+        crumbles[currentMint].seller.transfer(msg.value);
     }
 
+    // minting 가능한 crumble list return
+    function fetchCrumbleList() public view returns (Crumble[] memory) {
+        uint crumbleCnt = _tokenId.current();
+        uint unmintedCrumble = crumbleCnt - _mintIdx;
+        
+        Crumble[] memory unminted = new Crumble[](unmintedCrumble);
+        for (uint i = 0; i < unmintedCrumble; i++) {
+            // unminted 된 것들만 보여줘야 함
+            Crumble storage current = crumbles[_mintIdx + i + 1];
+            unminted[i] = current;
+        }
+
+        return unminted;
+    }
     // function setMarketplace(address market) public {
     //     marketplace = market;
     // }
