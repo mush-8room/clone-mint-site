@@ -110,6 +110,19 @@ contract CrumbleToken is ERC721URIStorage{
 
         return unminted;
     }
+
+    function fetchAllCrumbles() public view returns (Crumble[] memory) {
+        uint crumbleCnt = _tokenId.current();
+        // uint currentIdx = 0;
+        
+        Crumble[] memory allCrumble = new Crumble[](crumbleCnt);
+        for (uint i = 0; i < crumbleCnt; i++) {
+            Crumble storage current = crumbles[i + 1];
+            allCrumble[i] = current;
+        }
+
+        return allCrumble;
+    }
     // function setMarketplace(address market) public {
     //     marketplace = market;
     // }

@@ -109,8 +109,8 @@ export default function Home() {
       <hr/>
       <div>
         {crumbles.length != 0 ? (
-          crumbles.map((crumble) => 
-           <div>
+          crumbles.map((crumble, idx) => 
+           <div key={idx}>
               <p><b>tokenId: {crumble.tokenId}</b></p>
               <pre>seller: {crumble.seller}</pre>
               <pre>owner: {crumble.owner}</pre>
