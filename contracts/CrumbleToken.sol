@@ -22,6 +22,7 @@ contract CrumbleToken is ERC721URIStorage{
     // address payable owner;
     uint256 private _mintIdx;
 
+    // ERC721() 부분은 상속받은 부모 컨트랙트(ERC721)의 constructor에 넣어줄 값을 전달하는 것
     constructor () ERC721("Crumble","CRB") {
         // owner = payable(msg.sender);
         _mintIdx = 0;
